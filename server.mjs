@@ -2,7 +2,7 @@ import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import { mkdtemp, readFile, readdir, stat, rm } from 'node:fs/promises';
 import { createReadStream } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
@@ -18,9 +18,9 @@ function json(res, status, value) {
   res.end(JSON.stringify(value));
 }
 
-function command(bin, args, cwd, timeout = 120_000) {
+function command(bin, args, cwd, timeout = 120_000, env = process.env) {
   return new Promise((resolve) => {
-    const child = spawn(bin, args, { cwd, shell: false, windowsHide: true });
+    const child = spawn(bin, args, { cwd, env, shell: false, windowsHide: true });
     let output = '';
     const add = (data) => { output = (output + data).slice(-maxOutput); };
     child.stdout.on('data', add);
@@ -101,9 +101,16 @@ async function invokeCodex(repoDir, issue, plan, repairOutput = null) {
     configuredCodex || process.execPath,
     [...(configuredCodex ? [] : [localCodexCli]), 'exec', '--ephemeral', '--sandbox', 'workspace-write', prompt],
     repoDir,
-    600_000
+    180_000,
+    {
+      ...process.env,
+      HOME: process.env.HOME || homedir(),
+      CODEX_HOME: process.env.CODEX_HOME || path.join(homedir(), '.codex')
+    }
   );
-  if (result.code !== 0) throw new Error(`OpenAI Codex CLI failed:\n${result.output}`);
+  if (result.code !== 0 || /Error finding codex home|failed to initialize in-process app-server client/i.test(result.output)) {
+    throw new Error(`OpenAI Codex CLI failed:\n${result.output}`);
+  }
   return { summary: result.output.trim() || 'OpenAI Codex completed the requested change.' };
 }
 
