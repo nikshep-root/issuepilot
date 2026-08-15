@@ -95,10 +95,13 @@ async function invokeCodex(repoDir, issue, plan, repairOutput = null) {
   const prompt = repairOutput
     ? `The tests failed after your implementation. Repair the issue in this repository. Test output:\n${repairOutput}\nDo not change unrelated files.`
     : `Implement this issue in the repository at your working directory.\nTitle: ${issue.title}\nDescription: ${issue.description}\nPlan:\n${plan.map((step, i) => `${i + 1}. ${step}`).join('\n')}\nWork directly in the repository. Keep the change focused and add tests when appropriate.`;
-  const localCodexCli = path.join(root, 'node_modules', '@openai', 'codex', 'bin', 'codex.js');
+  const isWindowsX64 = process.platform === 'win32' && process.arch === 'x64';
+  const localCodexCli = isWindowsX64
+    ? path.join(root, 'node_modules', '@openai', 'codex-win32-x64', 'vendor', 'x86_64-pc-windows-msvc', 'bin', 'codex.exe')
+    : path.join(root, 'node_modules', '@openai', 'codex', 'bin', 'codex.js');
   const result = await command(
-    process.execPath,
-    [localCodexCli, 'exec', '--ephemeral', '--sandbox', 'workspace-write', prompt],
+    isWindowsX64 ? localCodexCli : process.execPath,
+    [...(isWindowsX64 ? [] : [localCodexCli]), 'exec', '--ephemeral', '--sandbox', 'workspace-write', prompt],
     repoDir,
     180_000,
     {
