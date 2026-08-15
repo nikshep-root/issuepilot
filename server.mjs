@@ -96,10 +96,9 @@ async function invokeCodex(repoDir, issue, plan, repairOutput = null) {
     ? `The tests failed after your implementation. Repair the issue in this repository. Test output:\n${repairOutput}\nDo not change unrelated files.`
     : `Implement this issue in the repository at your working directory.\nTitle: ${issue.title}\nDescription: ${issue.description}\nPlan:\n${plan.map((step, i) => `${i + 1}. ${step}`).join('\n')}\nWork directly in the repository. Keep the change focused and add tests when appropriate.`;
   const localCodexCli = path.join(root, 'node_modules', '@openai', 'codex', 'bin', 'codex.js');
-  const configuredCodex = process.env.CODEX_CLI_PATH;
   const result = await command(
-    configuredCodex || process.execPath,
-    [...(configuredCodex ? [] : [localCodexCli]), 'exec', '--ephemeral', '--sandbox', 'workspace-write', prompt],
+    process.execPath,
+    [localCodexCli, 'exec', '--ephemeral', '--sandbox', 'workspace-write', prompt],
     repoDir,
     180_000,
     {
