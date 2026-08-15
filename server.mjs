@@ -18,13 +18,14 @@ function json(res, status, value) {
   res.end(JSON.stringify(value));
 }
 
-function command(bin, args, cwd, timeout = 120_000, env = process.env) {
+function command(bin, args, cwd, timeout = 120_000, env = process.env, input = '') {
   return new Promise((resolve) => {
-    const child = spawn(bin, args, { cwd, env, shell: false, stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(bin, args, { cwd, env, shell: false, stdio: ['pipe', 'pipe', 'pipe'] });
     let output = '';
     const add = (data) => { output = (output + data).slice(-maxOutput); };
     child.stdout.on('data', add);
     child.stderr.on('data', add);
+    child.stdin.end(input);
     const timer = setTimeout(() => child.kill(), timeout);
     child.on('error', (error) => {
       clearTimeout(timer);
@@ -101,14 +102,15 @@ async function invokeCodex(repoDir, issue, plan, repairOutput = null) {
     : path.join(root, 'node_modules', '@openai', 'codex', 'bin', 'codex.js');
   const result = await command(
     isWindowsX64 ? localCodexCli : process.execPath,
-    [...(isWindowsX64 ? [] : [localCodexCli]), 'exec', '--ephemeral', '--sandbox', 'workspace-write', prompt],
+    [...(isWindowsX64 ? [] : [localCodexCli]), 'exec', '-', '--ephemeral', '--sandbox', 'workspace-write'],
     repoDir,
     180_000,
     {
       ...process.env,
       HOME: process.env.HOME || homedir(),
       CODEX_HOME: process.env.CODEX_HOME || path.join(homedir(), '.codex')
-    }
+    },
+    prompt
   );
   if (result.code !== 0 || /Error finding codex home|failed to initialize in-process app-server client/i.test(result.output)) {
     throw new Error(`OpenAI Codex CLI failed:\n${result.output}`);
