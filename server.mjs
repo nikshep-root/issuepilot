@@ -20,7 +20,7 @@ function json(res, status, value) {
 
 function command(bin, args, cwd, timeout = 120_000, env = process.env) {
   return new Promise((resolve) => {
-    const child = spawn(bin, args, { cwd, env, shell: false, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+    const child = spawn(bin, args, { cwd, env, shell: false, stdio: ['ignore', 'pipe', 'pipe'] });
     let output = '';
     const add = (data) => { output = (output + data).slice(-maxOutput); };
     child.stdout.on('data', add);
