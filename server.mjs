@@ -102,8 +102,8 @@ async function invokeCodex(repoDir, issue, plan, repairOutput = null) {
     : path.join(root, 'node_modules', '@openai', 'codex', 'bin', 'codex.js');
   const result = await command(
     isWindowsX64 ? localCodexCli : process.execPath,
-    [...(isWindowsX64 ? [] : [localCodexCli]), 'exec', '-', '--ephemeral', '--sandbox', 'workspace-write'],
-    repoDir,
+    [...(isWindowsX64 ? [] : [localCodexCli]), 'exec', '-', '--ephemeral', '--sandbox', 'workspace-write', '--cd', repoDir],
+    root,
     180_000,
     {
       ...process.env,
