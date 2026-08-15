@@ -20,7 +20,16 @@ function json(res, status, value) {
 
 function command(bin, args, cwd, timeout = 120_000, env = process.env, input = '') {
   return new Promise((resolve) => {
-    const child = spawn(bin, args, { cwd, env, shell: false, stdio: ['pipe', 'pipe', 'pipe'] });
+    const useWindowsCommandShell = process.platform === 'win32' && /\.(cmd|bat)$/i.test(bin);
+    const child = spawn(bin, args, {
+      cwd,
+      env,
+      // Windows command shims such as npm.cmd cannot be launched directly by
+      // child_process.spawn. Native executables (including codex.exe) remain direct.
+      shell: useWindowsCommandShell,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      windowsHide: process.platform === 'win32'
+    });
     let output = '';
     const add = (data) => { output = (output + data).slice(-maxOutput); };
     child.stdout.on('data', add);
